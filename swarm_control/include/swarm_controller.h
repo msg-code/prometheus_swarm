@@ -46,10 +46,32 @@ Eigen::MatrixXf formation_separation;           // 阵型偏移量
 
 Eigen::MatrixXf unitCir_p; //初始期望方位
 Eigen::Matrix2f R_theta; //旋转矩阵
-Eigen::Matrix2f p_ij_star;
-Eigen::Vector2f g_ij;
-Eigen::Matrix2f g_ij_star;
-Eigen::MatrixXd Id; //单位矩阵
+
+Eigen::Vector2f config_g_1;
+Eigen::Vector2f config_g_2;
+Eigen::Vector2f g_g_1;
+Eigen::Vector2f g_g_2;
+Eigen::Vector2f g_g_t;
+Eigen::Vector2f config_g_t;
+Eigen::Matrix2f config_px[2]; //2*2
+Eigen::Matrix2f config_pt;
+Eigen::Matrix2f Id;
+
+Eigen::Vector2f dp;
+Eigen::Vector2f g_x_1;
+Eigen::Vector2f g_x_2;
+Eigen::Vector2f g_star_1;
+Eigen::Vector2f g_star_2;
+Eigen::Vector2f g_star_t;
+Eigen::Matrix2f p_temp_1;
+Eigen::Matrix2f p_temp_2;
+Eigen::Matrix2f p_temp_t;
+Eigen::Matrix2f p_star_1;
+Eigen::Matrix2f p_star_2;
+Eigen::Matrix2f pt_star;
+Eigen::Vector2f g_t;
+Eigen::Vector2f target_vel;
+Eigen::Vector2f u;
 
 float k_a;
 float k_b; 
@@ -101,8 +123,7 @@ void init()
     formation_separation = Eigen::MatrixXf::Zero(swarm_num,4); 
     // 初始化期望方位
     unitCir_p = Eigen::MatrixXf::Zero(swarm_num,2);
-    Id = Eigen::MatrixXd::Identity(2,2);
-    
+    Id = Eigen::Matrix2f::Identity(2,2);
 
     // cout << "swarm_num   : "<< swarm_num <<endl;
 }
@@ -143,7 +164,34 @@ void swarm_command_cb(const prometheus_msgs::SwarmCommand::ConstPtr& msg)
     {
         if(swarm_num == 5 || swarm_num == 6){
             unitCir_p = formation_utils::get_formation_unitcir(swarm_num);
-            R_theta = formation_utils::get_R_theta(1/20*w*theta_i);
+            // cout<< "----------unitcir_p-----------"<<endl;
+            // for(int i =0;i< swarm_num;i++){
+            //     cout<< "x:"<<unitCir_p(i,0)<<"y:"<< unitCir_p(i,1)<<endl;
+            // }
+            
+            // R_theta = formation_utils::get_R_theta(1/20*w*theta_i);
+            // cout<< "--------------R_theta------------------"<<endl;
+            // cout<<R_theta(0,0) <<" "<<R_theta(0,1)<<endl;
+            // cout<<R_theta(1,0) <<" "<<R_theta(1,1)<<endl;
+            // config_g_1 = Eigen::Vector2f(unitCir_p(neighbour_id1,0)-unitCir_p(uav_id,0),unitCir_p(neighbour_id1,1)-unitCir_p(uav_id,1));
+            config_g_1[0] = unitCir_p(neighbour_id1-1,0)-unitCir_p(uav_id-1,0);
+            config_g_1[1] = unitCir_p(neighbour_id1-1,1)-unitCir_p(uav_id-1,1);
+            g_g_1 = config_g_1/config_g_1.norm();
+
+            // config_g_2 = Eigen::Vector2f(unitCir_p(neighbour_id2,0)-unitCir_p(uav_id,0),unitCir_p(neighbour_id2,1)-unitCir_p(uav_id,1));
+            config_g_2[0] = unitCir_p(neighbour_id2-1,0)-unitCir_p(uav_id-1,0);
+            config_g_2[1] = unitCir_p(neighbour_id2-1,1)-unitCir_p(uav_id-1,1);
+            g_g_2 = config_g_2/config_g_2.norm();
+
+            config_px[0] = Id - g_g_1 * g_g_1.transpose();
+            config_px[1] = Id - g_g_2 * g_g_2.transpose();
+            config_g_t[0] = unitCir_p(uav_id-1,0);
+            config_g_t[1] = unitCir_p(uav_id-1,1);
+            g_g_t = Eigen::Vector2f(-unitCir_p(uav_id-1,0),-unitCir_p(uav_id-1,1));
+            config_pt = Id - config_g_t * config_g_t.transpose(); 
+            // cout<< "--------------config_pt------------------"<<endl;
+            // cout<<config_pt(0,0) <<" "<<config_pt(0,1)<<endl;
+
         }else{
             pub_message(message_pub, prometheus_msgs::Message::ERROR, msg_name, "Wrong unitcir_p");
         }
@@ -213,6 +261,7 @@ void printf_state()
     cout << "neighbour_vel [X Y Z] : " << vel_nei[0][0] << " [ m/s ] "<< vel_nei[0][1]<<" [ m/s ] "<<vel_nei[0][2]<<" [ m/s ] "<<endl;
     cout << "neighbour_pos [X Y Z] : " << pos_nei[1][0] << " [ m ] "<< pos_nei[1][1]<<" [ m ] "<<pos_nei[1][2]<<" [ m ] "<<endl;
     cout << "neighbour_vel [X Y Z] : " << vel_nei[1][0] << " [ m/s ] "<< vel_nei[1][1]<<" [ m/s ] "<<vel_nei[1][2]<<" [ m/s ] "<<endl;
+    cout << "target_pos : " << pos_target[0] << " [ m ] "<< pos_target[1]<<" [ m ] "<<pos_target[2]<<" [ m ] "<<endl; 
 }
 
 int check_failsafe()

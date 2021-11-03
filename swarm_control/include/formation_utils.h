@@ -52,14 +52,17 @@ namespace formation_utils
 
 Eigen::Matrix2f get_R_theta(float theta){
     Eigen::Matrix2f R_theta(2,2);
-    R_theta<<cos(theta),-sin(theta),sin(theta),cos(theta);
+    R_theta<<cos(theta),-sin(theta),
+            sin(theta),cos(theta);
     return R_theta;
 
 }
 Eigen::MatrixXf get_formation_unitcir(int swarm_num){
     Eigen::MatrixXf unitcir(swarm_num,2);
+
     for(int i = 0;i<swarm_num;i++){
-        unitcir<<sin(M_PI*2/swarm_num*i),cos(M_PI*2/swarm_num*i);
+        unitcir(i,0) = sin(M_PI*2/swarm_num*i);
+        unitcir(i,1) = cos(M_PI*2/swarm_num*i);
     }
     return unitcir;
 

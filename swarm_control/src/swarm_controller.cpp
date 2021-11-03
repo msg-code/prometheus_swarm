@@ -329,70 +329,78 @@ int main(int argc, char **argv)
         case prometheus_msgs::SwarmCommand::Formation_containment:
 
             //方位刚性围猎
-            // 配置初始化期望方位
-            Eigen::Vector2f config_g_1;
-            Eigen::Vector2f config_g_2;
-            Eigen::Vector2f config_g_t;
-            Eigen::Matrix2f config_px[2]; //2*2
-            Eigen::Matrix2f config_pt;
+            // float theta = (float)(1/20)*w*theta_i;
+            float theta = 0.005*theta_i;
+            // cout<<"theta:"<<theta<<endl;
+            R_theta<<cos(theta),-sin(theta),
+                    sin(theta),cos(theta);
+            g_star_1 = R_theta * g_g_1;
+            g_star_2 = R_theta * g_g_2;
+            g_star_t = R_theta * g_g_t;   
 
-            config_g_1[0] = unitCir_p(neighbour_id1,0)-unitCir_p(uav_id,0);
-            config_g_1[1] = unitCir_p(neighbour_id1,1)-unitCir_p(uav_id,1);
-            config_g_2[0] = unitCir_p(neighbour_id2,0)-unitCir_p(uav_id,0);
-            config_g_2[1] = unitCir_p(neighbour_id2,1)-unitCir_p(uav_id,1);
-            Eigen::Matrix2f Id;
-            Id = Eigen::Matrix2f::Identity(2,2);
-            config_px[0] = Id - config_g_1 * config_g_1.transpose();
-            config_px[1] = Id - config_g_2 * config_g_2.transpose();
-            config_g_t[0] = unitCir_p(uav_id,0);
-            config_g_t[1] = unitCir_p(uav_id,1);
-            config_pt = Id - config_g_t * config_g_t.transpose();
             // // 实时计算与邻居以及目标之间的方位关系
-            Eigen::Vector2f dp;
-            Eigen::Vector2f g_x_1;
-            Eigen::Vector2f g_x_2;
-            Eigen::Matrix2f p_temp_1;
-            Eigen::Matrix2f p_temp_2;
-            Eigen::Matrix2f p_star_1;
-            Eigen::Matrix2f p_star_2;
-            Eigen::Matrix2f pt_star;
-            Eigen::Vector2f g_t;
-            Eigen::Vector2f target_vel;
-            Eigen::Vector2f u;
             dp[0] = pos_nei[0][0] - pos_drone[0]; // 邻居1 x
             dp[1] = pos_nei[0][1] - pos_drone[1]; // 邻居1 y
             g_x_1 = dp/dp.norm();
             p_temp_1 = Id - g_x_1 * g_x_1.transpose();
+
             dp[0] = pos_nei[1][0] - pos_drone[0]; // 邻居2 x
-            dp[1] = pos_nei[1][1] - pos_drone[1]; // 邻居2 
+            dp[1] = pos_nei[1][1] - pos_drone[1]; // 邻居2 y
             g_x_2 = dp/dp.norm();
             p_temp_2 = Id - g_x_2 * g_x_2.transpose();
-
             p_star_1 = R_theta * config_px[0] * R_theta.transpose();
             p_star_2 = R_theta * config_px[1] * R_theta.transpose();
             pt_star = R_theta * config_pt * R_theta.transpose();
-            g_t[0] = pos_target[0] - pos_drone[0];
-            g_t[1] = pos_target[1] - pos_drone[1];
+            // cout<< "--------------R_theta------------------"<<endl;
+            // cout<<R_theta(0,0) <<" "<<R_theta(0,1)<<endl;
+            // cout<<R_theta(1,0) <<" "<<R_theta(1,1)<<endl;
+            dp[0] = pos_target[0] - pos_drone[0];
+            dp[1] = pos_target[1] - pos_drone[1];
+            Eigen::Matrix2f dis;
+            dis(0,1) = 0;
+            dis(1,0) = 0;
+            dis(0,0) = dp.norm() - 5;
+            dis(1,1) = dp.norm() - 5;
+            cout<<"--------------dis-------------"<<endl;
+            cout<<dis(0,0)<<endl;
+
+            g_t = dp/dp.norm();
+            p_temp_t = Id - g_t * g_t.transpose();
             target_vel[0] = vel_target[0];
             target_vel[1] = vel_target[1];
-            
-            u = k_a * (p_star_1 * g_x_1 + p_star_2 * g_x_2) + k_b * (pt_star * g_t) + target_vel;
-
+            target_vel[0] = 0.5;
+            target_vel[1] = 0.5;
+            Eigen::Vector2f p1;
+            Eigen::Vector2f p2;
+            p1[0] = pos_drone[0] - pos_nei[0][0]; 
+            p1[1] = pos_drone[1] - pos_nei[0][1]; 
+            p2[0] = pos_drone[0] - pos_nei[1][0]; 
+            p2[1] = pos_drone[1] - pos_nei[1][1];
+            dp[0] = -dp[0];
+            dp[1] = -dp[1];
+            // u = - 1.75 * (p_star_1 *p1 +p_star_2 * p2) - 1.0 * (pt_star * dp) + target_vel;
+            u = - k_a * (p_temp_1 * g_star_1 + p_temp_2 * g_star_2) - k_b * (p_temp_t * g_star_t) + 0.4*dis*g_t+target_vel;  //环航围捕
+            // u = k_a * (p_star_1 * g_x_1 + p_star_2 * g_x_2) + k_b * (pt_star * g_t) + target_vel;
+            // cout<< "--------------u------------------"<<endl;
+            // cout<<u[0] <<" "<<u[1]<<endl;
             state_sp[0] = u[0];
             state_sp[1] = u[1];
-            state_sp[2] = _DroneState.position[2];;
-            yaw_sp = Command_Now.yaw_ref;
-
+            state_sp[2] = _DroneState.position[2];
+            yaw_sp = _DroneState.attitude[2];
+            // state_sp[0] = pos_target[0];
+            // state_sp[1] =  pos_target[1];
+            // state_sp[2] = _DroneState.position[2];
+            // yaw_sp = _DroneState.attitude[2];
+            theta_i++;
             send_vel_xy_pos_z_setpoint(state_sp, yaw_sp);
-
             break;
         }
 
         Command_Last = Command_Now;
-        if(theta_i==INT8_MAX){
+        if(theta_i==628){
             theta_i = 0;
         }
-        theta_i++;
+        
         rate.sleep();
     }
 }
