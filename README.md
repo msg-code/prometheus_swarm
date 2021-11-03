@@ -1,6 +1,6 @@
 Prometheus_swarm
 
-## prometheus项目的扩展
+## prometheus项目的扩展(https://github.com/amov-lab/Prometheus/wiki)
 
 **step 1：替换swarm__control 文件夹为该文件（本项目只修改了swarm相关代码）**
 
@@ -11,5 +11,5 @@ Prometheus_swarm
 **step 3：启动后在终端输入解锁、起飞指令后输入9进入containment模式**
 
 最终效果：
+![](image-storage/containment_formation.gif)
 
-<img src="/home/msg/Pictures/Screenshot from 2021-11-03 20-36-29.png" style="zoom:80%;" />
