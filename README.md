@@ -10,6 +10,9 @@ Prometheus_swarm
 
 **step 3：启动后在终端输入解锁、起飞指令后输入9进入containment模式**
 
+**参考文献 Bearing-based Bionic Encirclement Control Inspired by Dolphins（doi:10.1109/ICCA.2019.8900008）
+   和 Event-triggered encirclement control of multi-agent systems with bearing rigidity(doi:10.1007/s11432-017-9109-9) **
+注：采用方位刚性的图论知识进行合围队形的控制 本质上上是编队的构型和移动
 最终效果：
 ![](image-storage/containment_formation.gif)
 
